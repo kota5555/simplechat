@@ -12,7 +12,7 @@ def extract_region_from_arn(arn):
     return "us-east-1"
 
 # FastAPIのエンドポイントURLを環境変数から取得（デフォルト localhost:8000）
-FASTAPI_SERVER_URL = os.environ.get("https://7a84-34-169-221-171.ngrok-free.app/", "http://localhost:8000/chat")
+FASTAPI_SERVER_URL = os.environ.get("FASTAPI_SERVER_URL", "http://localhost:8000/chat")
 
 def lambda_handler(event, context):
     try:

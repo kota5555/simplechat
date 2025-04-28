@@ -2,7 +2,8 @@
 import json
 import os
 import re
-import requests  # HTTPリクエスト用に追加
+import urllib.request  # ここを変更
+import urllib.error    # エラー処理用
 
 # Lambda コンテキストからリージョンを抽出する関数（このままでOK）
 def extract_region_from_arn(arn):
@@ -39,14 +40,24 @@ def lambda_handler(event, context):
 
         print("Calling FastAPI server with payload:", json.dumps(payload))
 
-        # FastAPIサーバーへリクエスト
-        response = requests.post(FASTAPI_SERVER_URL, json=payload)
+        # --- urllibを使ったPOSTリクエスト ---
+        req = urllib.request.Request(
+            FASTAPI_SERVER_URL,
+            data=json.dumps(payload).encode('utf-8'),  # JSONをバイト列にエンコード
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
 
-        if response.status_code != 200:
-            raise Exception(f"FastAPI server error: {response.status_code}, {response.text}")
-
-        response_data = response.json()
-        print("FastAPI server response:", json.dumps(response_data))
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                response_body = response.read()
+                response_data = json.loads(response_body.decode('utf-8'))
+                print("FastAPI server response:", json.dumps(response_data))
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode()
+            raise Exception(f"FastAPI server HTTP error: {e.code}, {error_body}")
+        except urllib.error.URLError as e:
+            raise Exception(f"FastAPI server URL error: {e.reason}")
 
         if not response_data.get('success'):
             raise Exception("FastAPI server returned failure")
